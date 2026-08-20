@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model";
-import { RegisterUserResult } from "../types/auth.types";
+import { LoginUserResult, RegisterUserResult } from "../types/auth.types";
 import { ApiError } from "../utils/api-error";
-import { RegisterInput } from "../validations/auth.validation";
+import { LoginInput, RegisterInput } from "../validations/auth.validation";
 import { generateToken } from "../utils/jwt";
 
-export const registerUserService = async ({
+export const registerUser = async ({
   name,
   email,
   password,
@@ -24,6 +24,38 @@ export const registerUserService = async ({
     password: hashedPassword,
     role: "shopOwner",
   });
+
+  const token = generateToken(user._id.toString(), user.role);
+
+  return {
+    user: {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+    token,
+  };
+};
+
+export const loginUser = async ({
+  email,
+  password,
+}: LoginInput): Promise<LoginUserResult> => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  const isPasswordValid = await bcrypt.compare(
+    password,
+    user.password
+  );
+
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid email or password");
+  }
 
   const token = generateToken(user._id.toString(), user.role);
 

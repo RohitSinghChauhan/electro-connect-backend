@@ -14,12 +14,18 @@ export interface AuthUser {
   role: UserRole;
 }
 
-export interface RegisterUserResult {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: UserRole;
-  };
+export interface AuthUserResponse {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface AuthResult {
+  user: AuthUserResponse;
   token: string;
 }
+
+export interface RegisterUserResult extends AuthResult {}
+
+export interface LoginUserResult extends AuthResult {}

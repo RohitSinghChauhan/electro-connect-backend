@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
-import { ApiError } from "../utils/api-error";
-import { AuthUser } from "../types/auth.types";
 import jwt from "jsonwebtoken";
+
+import { AuthUser } from "../types/auth.types";
+import { ApiError } from "../utils/api-error";
 
 export const authMiddleware = (
   req: Request,
