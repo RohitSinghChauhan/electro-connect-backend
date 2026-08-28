@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createShopController,
+  getNearbyGoogleShopsController,
   getNearbyShopsController,
 } from "../controllers/shop.controller";
 import { validate } from "../middlewares/validate";
@@ -25,6 +26,12 @@ router.get(
   "/nearby",
   validate(nearbyShopsQuerySchema, "query"),
   getNearbyShopsController,
+);
+
+router.get(
+  "/nearby/google",
+  validate(nearbyShopsQuerySchema, "query"),
+  getNearbyGoogleShopsController,
 );
 
 export default router;
