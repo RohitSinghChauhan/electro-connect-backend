@@ -9,3 +9,8 @@ export const SHOP_STATUS_LABEL = {
   [SHOP_STATUS.PENDING]: 'Pending',
   [SHOP_STATUS.APPROVED]: 'Approved',
 }
+
+export const LEARN_STATUS = {
+  DRAFT: "draft",
+  PUBLISHED: "published",
+} as const;
