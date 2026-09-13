@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import adminRoutes from './routes/admin.routes';
 import learnRoutes from './routes/learn.routes';
+import jobRoutes from './routes/job.routes';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/learn', learnRoutes);
+app.use('/api/jobs', jobRoutes);
 
 app.use(errorHandler);
 

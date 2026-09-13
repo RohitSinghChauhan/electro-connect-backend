@@ -14,3 +14,16 @@ export const LEARN_STATUS = {
   DRAFT: "draft",
   PUBLISHED: "published",
 } as const;
+
+export const JOB_STATUS = {
+  OPEN: "open",
+  CLOSED: "closed",
+} as const;
+
+export const EMPLOYMENT_TYPE = {
+  FULL_TIME: "full-time",
+  PART_TIME: "part-time",
+  CONTRACT: "contract",
+  INTERNSHIP: "internship",
+  FREELANCE: "freelance",
+} as const;
