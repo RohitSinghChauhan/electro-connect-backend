@@ -6,14 +6,32 @@ import {
   getPendingShops,
   rejectShop,
 } from "../services/admin.service";
+import { pendingShopsQuerySchema } from "../validations/admin.validation";
 
 export const getPendingShopsController = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
-    const shops = await getPendingShops();
+  async (req: Request, res: Response): Promise<void> => {
+    const { page, limit } =
+      pendingShopsQuerySchema.parse(req.query);
 
-    res
-      .status(200)
-      .json(new ApiResponse(200, "Pending shops fetched successfully", shops));
+    const result = await getPendingShops({
+      page,
+      limit,
+    });
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        "Pending shops fetched successfully",
+        result.shops,
+        {
+          count: result.shops.length,
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
+      ),
+    );
   },
 );
 

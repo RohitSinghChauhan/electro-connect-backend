@@ -80,11 +80,12 @@ export interface CreateShopInput {
   services: string[];
 }
 
-// Google Places Types
 export interface SearchNearbyParams {
   latitude: number;
   longitude: number;
   radius: number;
+  page?: number;
+  limit?: number;
 }
 
 export interface GooglePlaceLocation {

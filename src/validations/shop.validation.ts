@@ -39,9 +39,10 @@ export const createShopSchema = z.object({
 });
 
 
-// For GooglePlaces feature
 export const nearbyShopsQuerySchema = z.object({
   lat: z.coerce.number({ message: "Latitude is required" }),
   lng: z.coerce.number({ message: "Longitude is required" }),
   radius: z.coerce.number().positive().default(2000),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(10),
 });

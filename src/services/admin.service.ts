@@ -2,14 +2,38 @@ import { SHOP_STATUS } from "../constants";
 import Shop from "../models/shop.model";
 import { ApiError } from "../utils/api-error";
 
-export const getPendingShops = async () => {
-  const shops = await Shop.find({
-    status: SHOP_STATUS.PENDING,
-  })
-    .populate("owner", "name email")
-    .sort({ createdAt: -1 });
+export const getPendingShops = async ({
+  page,
+  limit,
+}: {
+  page: number;
+  limit: number;
+}) => {
+  const skip = (page - 1) * limit;
 
-  return shops;
+  const [shops, total] = await Promise.all([
+    Shop.find({
+      status: SHOP_STATUS.PENDING,
+    })
+      .populate("owner", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+
+    Shop.countDocuments({
+      status: SHOP_STATUS.PENDING,
+    }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    shops,
+    total,
+    page,
+    limit,
+    totalPages,
+  };
 };
 
 export const approveShop = async (shopId: string) => {

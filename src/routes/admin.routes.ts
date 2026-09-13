@@ -6,6 +6,8 @@ import {
 } from "../controllers/admin.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/role.middleware";
+import { validate } from "../middlewares/validate";
+import { pendingShopsQuerySchema } from "../validations/admin.validation";
 
 const router = Router();
 
@@ -16,6 +18,7 @@ router.use(
 
 router.get(
   "/shops/pending",
+  validate(pendingShopsQuerySchema, "query"),
   getPendingShopsController
 );
 

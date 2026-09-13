@@ -72,7 +72,16 @@ export const getNearbyShops = async ({   // Get nearby shops from Google Places 
   latitude,
   longitude,
   radius,
-}: SearchNearbyParams): Promise<NearbyShop[]> => {
+  page=1,
+  limit=10,
+}: SearchNearbyParams): Promise<
+{
+  shops: NearbyShop[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}> => {
   const [googlePlaces, manualShops] = await Promise.all([
     searchNearbyShops({
       latitude,
@@ -108,10 +117,28 @@ export const getNearbyShops = async ({   // Get nearby shops from Google Places 
       ),
     );
 
-  return [
-    ...googleShops,
-    ...manualNearbyShops,
-  ].sort(
-    (a, b) => a.distance - b.distance,
-  );
+    const allShops = [
+      ...googleShops,
+      ...manualNearbyShops,
+    ].sort(
+      (a, b) => a.distance - b.distance,
+    );
+  
+    // Pagination
+    const total = allShops.length;
+    const totalPages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
+  
+    const shops = allShops.slice(
+      skip,
+      skip + limit,
+    );
+  
+    return {
+      shops,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
 };

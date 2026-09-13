@@ -38,18 +38,29 @@ export const createShopController = asyncHandler(
 
 export const getNearbyShopsController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { lat, lng, radius } = nearbyShopsQuerySchema.parse(req.query);
+    const { lat, lng, radius, page, limit } = nearbyShopsQuerySchema.parse(req.query);
 
-    const shops = await getNearbyShops({
+    const result = await getNearbyShops({
       latitude: lat,
       longitude: lng,
       radius,
+      page,
+      limit,
     });
 
     res.status(200).json(
-      new ApiResponse(200, "Data fetched successfully", shops, {
-        count: shops.length,
-      }),
+      new ApiResponse(
+        200,
+        "Data fetched successfully",
+        result.shops,
+        {
+          count: result.shops.length,
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
+      ),
     );
   },
 );
