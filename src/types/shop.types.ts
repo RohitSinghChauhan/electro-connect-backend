@@ -51,6 +51,7 @@ export interface ShopData {
   services: string[];
 
   status: ShopStatus;
+  views?: number;
 }
 
 export interface IShop extends Document {
@@ -66,6 +67,7 @@ export interface IShop extends Document {
   };
   services: string[];
   status: ShopStatus;
+  views: number;
 }
 
 export interface CreateShopInput {
@@ -78,6 +80,25 @@ export interface CreateShopInput {
   latitude: number;
   longitude: number;
   services: string[];
+}
+
+export interface UpdateShopInput {
+  name?: string;
+  description?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  services?: string[];
+}
+
+export interface OverviewStats {
+  activeShops: number;
+  pendingVerification: number;
+  openJobs: number;
+  newApplicants: number;
+  profileViews: number;
 }
 
 export interface SearchNearbyParams {

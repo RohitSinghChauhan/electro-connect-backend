@@ -62,6 +62,12 @@ const shopSchema = new Schema<IShop>(
         enum: [-1, 0, 1],
         default: 0
     },
+
+    views: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,

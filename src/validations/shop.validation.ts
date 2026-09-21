@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const shopQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(10),
+});
+
+export const shopIdParamsSchema = z.object({
+  id: z.string().min(1, "Shop ID is required"),
+});
+
 export const createShopSchema = z.object({
   name: z
     .string()
@@ -38,6 +47,48 @@ export const createShopSchema = z.object({
     .default([]),
 });
 
+export const updateShopSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Shop name must be at least 2 characters")
+    .optional(),
+
+  description: z
+    .string()
+    .max(500, "Description cannot exceed 500 characters")
+    .optional(),
+
+  phone: z
+    .string()
+    .min(10, "Phone number must be at least 10 characters")
+    .optional(),
+
+  email: z
+    .string()
+    .email("Invalid email address")
+    .optional(),
+
+  address: z
+    .string()
+    .min(5, "Address is required")
+    .optional(),
+
+  latitude: z
+    .number()
+    .min(-90)
+    .max(90)
+    .optional(),
+
+  longitude: z
+    .number()
+    .min(-180)
+    .max(180)
+    .optional(),
+
+  services: z
+    .array(z.string().min(1))
+    .optional(),
+});
 
 export const nearbyShopsQuerySchema = z.object({
   lat: z.coerce.number({ message: "Latitude is required" }),

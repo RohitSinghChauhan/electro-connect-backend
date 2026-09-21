@@ -1,9 +1,23 @@
+import { Request, Response } from "express";
+
 import { searchNearbyShops } from "../services/googlePlaces.service";
+import {
+  createShop,
+  deleteShop,
+  getMyShops,
+  getNearbyShops,
+  getOverviewStats,
+  updateShop,
+} from "../services/shop.service";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiResponse } from "../utils/api-response";
-import { nearbyShopsQuerySchema } from "../validations/shop.validation";
-import { createShop, getNearbyShops } from "../services/shop.service";
-import { Request, Response } from "express";
+import {
+  createShopSchema,
+  nearbyShopsQuerySchema,
+  shopIdParamsSchema,
+  shopQuerySchema,
+  updateShopSchema,
+} from "../validations/shop.validation";
 
 export const createShopController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -16,7 +30,7 @@ export const createShopController = asyncHandler(
       latitude,
       longitude,
       services,
-    } = req.body;
+    } = createShopSchema.parse(req.body);
 
     const result = await createShop({
       ownerId: req.user!.userId,
@@ -33,6 +47,72 @@ export const createShopController = asyncHandler(
     res
       .status(201)
       .json(new ApiResponse(201, "Shop submitted successfully", result));
+  },
+);
+
+export const getMyShopsController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { page, limit } = shopQuerySchema.parse(req.query);
+
+    const result = await getMyShops({
+      ownerId: req.user!.userId,
+      page,
+      limit,
+    });
+
+    res.status(200).json(
+      new ApiResponse(200, "Shops fetched successfully", result.items, {
+        count: result.items.length,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      }),
+    );
+  },
+);
+
+export const updateShopController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = shopIdParamsSchema.parse(req.params);
+    const body = updateShopSchema.parse(req.body);
+
+    const shop = await updateShop(id, body, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, "Shop updated successfully", shop));
+  },
+);
+
+export const deleteShopController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { id } = shopIdParamsSchema.parse(req.params);
+
+    await deleteShop(id, {
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, "Shop deleted successfully", null));
+  },
+);
+
+export const getOverviewStatsController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const stats = await getOverviewStats({
+      userId: req.user!.userId,
+      role: req.user!.role,
+    });
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, "Overview stats fetched successfully", stats));
   },
 );
 

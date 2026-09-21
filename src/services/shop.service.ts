@@ -1,6 +1,18 @@
+import mongoose from "mongoose";
+
+import { JOB_STATUS, SHOP_STATUS } from "../constants";
+import Application from "../models/application.model";
+import Job from "../models/job.model";
 import Shop from "../models/shop.model";
-import { CreateShopInput, NearbyShop, SearchNearbyParams } from "../types/shop.types";
-import { SHOP_STATUS } from "../constants";
+import { UserRole } from "../types/auth.types";
+import {
+  CreateShopInput,
+  NearbyShop,
+  OverviewStats,
+  SearchNearbyParams,
+  UpdateShopInput,
+} from "../types/shop.types";
+import { ApiError } from "../utils/api-error";
 import { searchNearbyShops } from "./googlePlaces.service";
 import { normalizeGoogleShop, normalizeManualShop } from "../helpers/shop-helpers";
 
@@ -45,6 +57,164 @@ export const createShop = async ({
     location: shop.location,
     services: shop.services,
     status: shop.status,
+    views: shop.views,
+  };
+};
+
+export const getMyShops = async ({
+  ownerId,
+  page,
+  limit,
+}: {
+  ownerId: string;
+  page: number;
+  limit: number;
+}) => {
+  const skip = (page - 1) * limit;
+  const filter = { owner: ownerId };
+
+  const [items, total] = await Promise.all([
+    Shop.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Shop.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages,
+  };
+};
+
+const assertShopAccess = (
+  shop: { owner: { toString(): string } },
+  user: { userId: string; role: UserRole }
+) => {
+  if (user.role === "admin") {
+    return;
+  }
+
+  if (shop.owner.toString() !== user.userId) {
+    throw new ApiError(403, "You are not authorized to perform this action");
+  }
+};
+
+export const updateShop = async (
+  id: string,
+  data: UpdateShopInput,
+  user: { userId: string; role: UserRole }
+) => {
+  const shop = await Shop.findById(id);
+
+  if (!shop) {
+    throw new ApiError(404, "Shop not found");
+  }
+
+  assertShopAccess(shop, user);
+
+  if (data.name !== undefined) {
+    shop.name = data.name;
+  }
+
+  if (data.description !== undefined) {
+    shop.description = data.description;
+  }
+
+  if (data.phone !== undefined) {
+    shop.phone = data.phone;
+  }
+
+  if (data.email !== undefined) {
+    shop.email = data.email;
+  }
+
+  if (data.address !== undefined) {
+    shop.address = data.address;
+  }
+
+  if (data.services !== undefined) {
+    shop.services = data.services;
+  }
+
+  if (data.latitude !== undefined || data.longitude !== undefined) {
+    const [currentLongitude, currentLatitude] = shop.location.coordinates;
+    const latitude = data.latitude ?? currentLatitude;
+    const longitude = data.longitude ?? currentLongitude;
+
+    shop.location = {
+      type: "Point",
+      coordinates: [longitude, latitude],
+    };
+  }
+
+  await shop.save();
+
+  return shop;
+};
+
+export const deleteShop = async (
+  id: string,
+  user: { userId: string; role: UserRole }
+) => {
+  const shop = await Shop.findById(id);
+
+  if (!shop) {
+    throw new ApiError(404, "Shop not found");
+  }
+
+  assertShopAccess(shop, user);
+
+  await shop.deleteOne();
+
+  return shop;
+};
+
+export const getOverviewStats = async ({
+  userId,
+  role,
+}: {
+  userId: string;
+  role: UserRole;
+}): Promise<OverviewStats> => {
+  const shopFilter =
+    role === "admin" ? {} : { owner: new mongoose.Types.ObjectId(userId) };
+  const jobFilter =
+    role === "admin" ? {} : { createdBy: new mongoose.Types.ObjectId(userId) };
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const [activeShops, pendingVerification, openJobs, profileViewsResult, jobIds] =
+    await Promise.all([
+      Shop.countDocuments({ ...shopFilter, status: SHOP_STATUS.APPROVED }),
+      Shop.countDocuments({ ...shopFilter, status: SHOP_STATUS.PENDING }),
+      Job.countDocuments({ ...jobFilter, jobStatus: JOB_STATUS.OPEN }),
+      Shop.aggregate([
+        { $match: shopFilter },
+        { $group: { _id: null, total: { $sum: "$views" } } },
+      ]),
+      Job.find(jobFilter).select("_id").lean(),
+    ]);
+
+  const jobIdList = jobIds.map((job) => job._id);
+
+  const newApplicants =
+    jobIdList.length === 0
+      ? 0
+      : await Application.countDocuments({
+          job: { $in: jobIdList },
+          createdAt: { $gte: sevenDaysAgo },
+        });
+
+  return {
+    activeShops,
+    pendingVerification,
+    openJobs,
+    newApplicants,
+    profileViews: profileViewsResult[0]?.total ?? 0,
   };
 };
 
