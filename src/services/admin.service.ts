@@ -36,6 +36,55 @@ export const getPendingShops = async ({
   };
 };
 
+export const getAllShops = async ({
+  page,
+  limit,
+  search,
+}: {
+  page: number;
+  limit: number;
+  search?: string;
+}) => {
+  const skip = (page - 1) * limit;
+  const filter: Record<string, unknown> = {};
+
+  if (search) {
+    const searchRegex = { $regex: search, $options: "i" };
+    filter.$or = [
+      { name: searchRegex },
+      { description: searchRegex },
+      { phone: searchRegex },
+      { email: searchRegex },
+      { address: searchRegex },
+      { services: searchRegex },
+    ];
+  }
+
+  const [shops, total] = await Promise.all([
+    Shop.find(filter)
+      .populate("owner", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Shop.countDocuments(filter),
+  ]);
+
+  const items = shops.map((shop) => {
+    return shop;
+  });
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages,
+  };
+};
+
 export const approveShop = async (shopId: string) => {
   const shop = await Shop.findById(shopId);
 
@@ -44,10 +93,7 @@ export const approveShop = async (shopId: string) => {
   }
 
   if (shop.status !== SHOP_STATUS.PENDING) {
-    throw new ApiError(
-      400,
-      "Only pending shops can be approved"
-    );
+    throw new ApiError(400, "Only pending shops can be approved");
   }
 
   shop.status = SHOP_STATUS.APPROVED;
@@ -65,10 +111,7 @@ export const rejectShop = async (shopId: string) => {
   }
 
   if (shop.status !== SHOP_STATUS.PENDING) {
-    throw new ApiError(
-      400,
-      "Only pending shops can be rejected"
-    );
+    throw new ApiError(400, "Only pending shops can be rejected");
   }
 
   shop.status = SHOP_STATUS.REJECTED;

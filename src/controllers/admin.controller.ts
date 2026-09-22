@@ -3,10 +3,14 @@ import { asyncHandler } from "../utils/async-handler";
 import { ApiResponse } from "../utils/api-response";
 import {
   approveShop,
+  getAllShops,
   getPendingShops,
   rejectShop,
 } from "../services/admin.service";
-import { pendingShopsQuerySchema } from "../validations/admin.validation";
+import {
+  adminShopsListQuerySchema,
+  pendingShopsQuerySchema,
+} from "../validations/admin.validation";
 
 export const getPendingShopsController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -25,6 +29,34 @@ export const getPendingShopsController = asyncHandler(
         result.shops,
         {
           count: result.shops.length,
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: result.totalPages,
+        },
+      ),
+    );
+  },
+);
+
+export const getAllShopsController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { page, limit, search } =
+      adminShopsListQuerySchema.parse(req.query);
+
+    const result = await getAllShops({
+      page,
+      limit,
+      search,
+    });
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        "Shops fetched successfully",
+        result.items,
+        {
+          count: result.items.length,
           total: result.total,
           page: result.page,
           limit: result.limit,

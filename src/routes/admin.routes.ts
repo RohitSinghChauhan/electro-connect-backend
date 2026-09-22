@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getAllShopsController,
   getPendingShopsController,
   approveShopController,
   rejectShopController,
@@ -14,7 +15,10 @@ import {
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { authorizeRoles } from "../middlewares/role.middleware";
 import { validate } from "../middlewares/validate";
-import { pendingShopsQuerySchema } from "../validations/admin.validation";
+import {
+  adminShopsListQuerySchema,
+  pendingShopsQuerySchema,
+} from "../validations/admin.validation";
 import {
   createLearnSchema,
   learnQuerySchema,
@@ -26,6 +30,12 @@ const router = Router();
 router.use(
   authMiddleware,
   authorizeRoles("admin")
+);
+
+router.get(
+  "/shops/list",
+  validate(adminShopsListQuerySchema, "query"),
+  getAllShopsController
 );
 
 router.get(
