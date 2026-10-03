@@ -11,27 +11,39 @@ const userSchema = new Schema<IUser>(
 
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
 
     password: {
       type: String,
-      required: true,
       minlength: 6,
+    },
+
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
 
     role: {
       type: String,
-      enum: ["shopOwner", "admin"],
+      enum: ["customer", "shopOwner", "admin"],
       default: "shopOwner",
     },
   },
+
   {
     timestamps: true,
-  }
+  },
 );
 
 const User = mongoose.model<IUser>("User", userSchema);
