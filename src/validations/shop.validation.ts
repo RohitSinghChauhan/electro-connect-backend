@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+import { SHOP_SERVICES } from "../constants";
+
+const shopServiceSchema = z.enum(SHOP_SERVICES);
+
+const shopServicesSchema = z
+  .array(shopServiceSchema)
+  .min(1, "Select at least one service")
+  .transform((services) => [...new Set(services)]);
+
 export const shopQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(50).default(10),
@@ -42,9 +51,7 @@ export const createShopSchema = z.object({
     .min(-180)
     .max(180),
 
-  services: z
-    .array(z.string().min(1))
-    .default([]),
+  services: shopServicesSchema,
 });
 
 export const updateShopSchema = z.object({
@@ -85,15 +92,40 @@ export const updateShopSchema = z.object({
     .max(180)
     .optional(),
 
-  services: z
-    .array(z.string().min(1))
-    .optional(),
+  services: shopServicesSchema.optional(),
 });
 
-export const nearbyShopsQuerySchema = z.object({
+export const nearbyGoogleShopsQuerySchema = z.object({
   lat: z.coerce.number({ message: "Latitude is required" }),
   lng: z.coerce.number({ message: "Longitude is required" }),
   radius: z.coerce.number().positive().default(2000),
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(50).default(10),
 });
+
+export const nearbyShopsQuerySchema = z
+  .object({
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    search: z
+      .string()
+      .trim()
+      .max(200)
+      .optional()
+      .transform((value) => (value ? value : undefined))
+      .refine((value) => value === undefined || value.length >= 2, {
+        message: "Search must be at least 2 characters",
+      }),
+    service: shopServiceSchema.optional(),
+    radius: z.coerce.number().positive().max(30000).default(15000),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(50).default(10),
+  })
+  .refine(
+    (data) => {
+      if (data.search) {
+        return true;
+      }
+
+      return data.lat !== undefined && data.lng !== undefined;
+    },
+    { message: "Provide lat and lng, or a search location" },
+  );

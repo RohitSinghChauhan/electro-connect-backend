@@ -1,20 +1,21 @@
 import mongoose from "mongoose";
 
-import { JOB_STATUS, SHOP_STATUS } from "../constants";
+import { JOB_STATUS, SERVICE_ORDER_STATUS, SHOP_STATUS, ShopService } from "../constants";
 import Application from "../models/application.model";
 import Job from "../models/job.model";
+import ServiceOrder from "../models/service-order.model";
 import Shop from "../models/shop.model";
 import { UserRole } from "../types/auth.types";
 import {
   CreateShopInput,
+  ManualShopRecord,
   NearbyShop,
   OverviewStats,
-  SearchNearbyParams,
   UpdateShopInput,
 } from "../types/shop.types";
 import { ApiError } from "../utils/api-error";
-import { searchNearbyShops } from "./googlePlaces.service";
-import { normalizeGoogleShop, normalizeManualShop } from "../helpers/shop-helpers";
+import { normalizeManualShop } from "../helpers/shop-helpers";
+import { geocodePlace } from "./geocode.service";
 
 export const createShop = async ({
   ownerId,
@@ -187,7 +188,11 @@ export const getOverviewStats = async ({
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const [activeShops, pendingVerification, openJobs, profileViewsResult, jobIds] =
+  const serviceOrderFilter = {
+    shopOwner: new mongoose.Types.ObjectId(userId),
+  };
+
+  const [activeShops, pendingVerification, openJobs, profileViewsResult, jobIds, pendingServiceOrders] =
     await Promise.all([
       Shop.countDocuments({ ...shopFilter, status: SHOP_STATUS.APPROVED }),
       Shop.countDocuments({ ...shopFilter, status: SHOP_STATUS.PENDING }),
@@ -197,6 +202,10 @@ export const getOverviewStats = async ({
         { $group: { _id: null, total: { $sum: "$views" } } },
       ]),
       Job.find(jobFilter).select("_id").lean(),
+      ServiceOrder.countDocuments({
+        ...serviceOrderFilter,
+        status: SERVICE_ORDER_STATUS.PENDING,
+      }),
     ]);
 
   const jobIdList = jobIds.map((job) => job._id);
@@ -215,100 +224,103 @@ export const getOverviewStats = async ({
     openJobs,
     newApplicants,
     profileViews: profileViewsResult[0]?.total ?? 0,
+    pendingServiceOrders,
   };
 };
 
-const getApprovedNearbyShops = async ({
+export const getNearbyShops = async ({
   latitude,
   longitude,
+  search,
   radius,
-}: SearchNearbyParams) => {
-  return Shop.find({
-    status: SHOP_STATUS.APPROVED,
-
-    location: {
-      $near: {
-        $geometry: {
-          type: "Point",
-          coordinates: [longitude, latitude],
-        },
-        $maxDistance: radius,
-      },
-    },
-  });
-};
-
-export const getNearbyShops = async ({   // Get nearby shops from Google Places and ElectroConnect
-  latitude,
-  longitude,
-  radius,
-  page=1,
-  limit=10,
-}: SearchNearbyParams): Promise<
-{
+  page = 1,
+  limit = 10,
+  service,
+}: {
+  latitude?: number;
+  longitude?: number;
+  search?: string;
+  radius: number;
+  page?: number;
+  limit?: number;
+  service?: ShopService;
+}): Promise<{
   shops: NearbyShop[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
+  latitude: number;
+  longitude: number;
+  address?: string;
 }> => {
-  const [googlePlaces, manualShops] = await Promise.all([
-    searchNearbyShops({
-      latitude,
-      longitude,
-      radius,
-    }),
+  let resolvedLatitude = latitude;
+  let resolvedLongitude = longitude;
+  let resolvedAddress: string | undefined;
 
-    getApprovedNearbyShops({
-      latitude,
-      longitude,
-      radius,
-    }),
+  if (search) {
+    const geocoded = await geocodePlace(search);
+    resolvedLatitude = geocoded.latitude;
+    resolvedLongitude = geocoded.longitude;
+    resolvedAddress = geocoded.address;
+  }
+
+  if (resolvedLatitude === undefined || resolvedLongitude === undefined) {
+    throw new ApiError(400, "Provide lat and lng, or a search location");
+  }
+
+  const searchLatitude = resolvedLatitude;
+  const searchLongitude = resolvedLongitude;
+  const skip = (page - 1) * limit;
+  const geoQuery: Record<string, unknown> = {
+    status: SHOP_STATUS.APPROVED,
+  };
+
+  if (service) {
+    geoQuery.services = service;
+  }
+
+  const aggregated = await Shop.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [searchLongitude, searchLatitude],
+        },
+        distanceField: "distanceMeters",
+        maxDistance: radius,
+        spherical: true,
+        query: geoQuery,
+      },
+    },
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $skip: skip }, { $limit: limit }],
+      },
+    },
   ]);
 
-  const googleShops = googlePlaces
-    .map((place) =>
-      normalizeGoogleShop(
-        place,
-        latitude,
-        longitude,
-      ),
-    )
-    .filter(
-      (shop): shop is NearbyShop => shop !== null,
-    );
+  const bucket = aggregated[0] as {
+    metadata: { total: number }[];
+    data: Array<ManualShopRecord & { distanceMeters: number }>;
+  };
 
-  const manualNearbyShops =
-  manualShops.map((shop) =>
-      normalizeManualShop(
-        shop,
-        latitude,
-        longitude,
-      ),
-    );
+  const total = bucket?.metadata[0]?.total ?? 0;
+  const totalPages = Math.ceil(total / limit);
+  const shops = (bucket?.data ?? []).map((shop) => ({
+    ...normalizeManualShop(shop, searchLatitude, searchLongitude),
+    distance: Number((shop.distanceMeters / 1000).toFixed(2)),
+  }));
 
-    const allShops = [
-      ...googleShops,
-      ...manualNearbyShops,
-    ].sort(
-      (a, b) => a.distance - b.distance,
-    );
-  
-    // Pagination
-    const total = allShops.length;
-    const totalPages = Math.ceil(total / limit);
-    const skip = (page - 1) * limit;
-  
-    const shops = allShops.slice(
-      skip,
-      skip + limit,
-    );
-  
-    return {
-      shops,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+  return {
+    shops,
+    total,
+    page,
+    limit,
+    totalPages,
+    latitude: searchLatitude,
+    longitude: searchLongitude,
+    address: resolvedAddress,
+  };
 };

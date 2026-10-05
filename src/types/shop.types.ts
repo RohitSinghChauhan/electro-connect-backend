@@ -93,12 +93,26 @@ export interface UpdateShopInput {
   services?: string[];
 }
 
+export interface ManualShopRecord {
+  _id: { toString(): string };
+  name: string;
+  address: string;
+  phone: string;
+  email?: string;
+  description?: string;
+  services?: string[];
+  location: {
+    coordinates: number[];
+  };
+}
+
 export interface OverviewStats {
   activeShops: number;
   pendingVerification: number;
   openJobs: number;
   newApplicants: number;
   profileViews: number;
+  pendingServiceOrders: number;
 }
 
 export interface SearchNearbyParams {

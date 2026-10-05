@@ -1,4 +1,4 @@
-import { GooglePlace, IShop, NearbyShop } from "../types/shop.types";
+import { GooglePlace, ManualShopRecord, NearbyShop } from "../types/shop.types";
 
 export const calculateDistance = (
     latitude1: number,
@@ -63,7 +63,7 @@ export const calculateDistance = (
   };
   
   export const normalizeManualShop = (
-    shop: IShop,
+    shop: ManualShopRecord,
     userLatitude: number,
     userLongitude: number,
   ): NearbyShop => {

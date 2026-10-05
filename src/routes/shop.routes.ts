@@ -6,11 +6,13 @@ import {
   getNearbyGoogleShopsController,
   getNearbyShopsController,
   getOverviewStatsController,
+  getShopServicesController,
   updateShopController,
 } from "../controllers/shop.controller";
 import { validate } from "../middlewares/validate";
 import {
   createShopSchema,
+  nearbyGoogleShopsQuerySchema,
   nearbyShopsQuerySchema,
   shopIdParamsSchema,
   shopQuerySchema,
@@ -61,6 +63,8 @@ router.delete(
   deleteShopController,
 );
 
+router.get("/services/list", getShopServicesController);
+
 router.get(
   "/nearby",
   validate(nearbyShopsQuerySchema, "query"),
@@ -69,7 +73,7 @@ router.get(
 
 router.get(
   "/nearby/google",
-  validate(nearbyShopsQuerySchema, "query"),
+  validate(nearbyGoogleShopsQuerySchema, "query"),
   getNearbyGoogleShopsController,
 );
 
