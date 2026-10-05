@@ -11,8 +11,10 @@ import {
 } from "../services/shop.service";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiResponse } from "../utils/api-response";
+import { SHOP_SERVICES } from "../constants";
 import {
   createShopSchema,
+  nearbyGoogleShopsQuerySchema,
   nearbyShopsQuerySchema,
   shopIdParamsSchema,
   shopQuerySchema,
@@ -116,16 +118,27 @@ export const getOverviewStatsController = asyncHandler(
   },
 );
 
+export const getShopServicesController = asyncHandler(
+  async (_req: Request, res: Response): Promise<void> => {
+    res
+      .status(200)
+      .json(new ApiResponse(200, "Data fetched successfully", [...SHOP_SERVICES]));
+  },
+);
+
 export const getNearbyShopsController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { lat, lng, radius, page, limit } = nearbyShopsQuerySchema.parse(req.query);
+    const { lat, lng, radius, page, limit, search, service } =
+      nearbyShopsQuerySchema.parse(req.query);
 
     const result = await getNearbyShops({
       latitude: lat,
       longitude: lng,
+      search,
       radius,
       page,
       limit,
+      service,
     });
 
     res.status(200).json(
@@ -139,6 +152,9 @@ export const getNearbyShopsController = asyncHandler(
           page: result.page,
           limit: result.limit,
           totalPages: result.totalPages,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          address: result.address ?? null,
         },
       ),
     );
@@ -147,7 +163,7 @@ export const getNearbyShopsController = asyncHandler(
 
 export const getNearbyGoogleShopsController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const { lat, lng, radius } = nearbyShopsQuerySchema.parse(req.query);
+    const { lat, lng, radius } = nearbyGoogleShopsQuerySchema.parse(req.query);
 
     const shops = await searchNearbyShops({
       latitude: lat,

@@ -27,3 +27,29 @@ export const EMPLOYMENT_TYPE = {
   INTERNSHIP: "internship",
   FREELANCE: "freelance",
 } as const;
+
+export const SHOP_SERVICES = [
+  "AC Repair & Maintenance",
+  "Fan Repair",
+  "Bulb/Light Repair",
+  "Switch & Socket Repair",
+  "Electrical Wiring",
+  "MCB/DB Repair",
+  "Inverter & Battery Services",
+  "CCTV Installation & Repair",
+  "Appliance Repair",
+] as const;
+
+export type ShopService = (typeof SHOP_SERVICES)[number];
+
+export const SERVICE_ORDER_STATUS = {
+  PENDING: "pending",
+  ACCEPTED: "accepted",
+  ON_THE_WAY: "on_the_way",
+  COMPLETED: "completed",
+  REJECTED: "rejected",
+  CANCELLED: "cancelled",
+} as const;
+
+export type ServiceOrderStatus =
+  (typeof SERVICE_ORDER_STATUS)[keyof typeof SERVICE_ORDER_STATUS];
