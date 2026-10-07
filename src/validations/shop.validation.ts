@@ -52,6 +52,16 @@ export const createShopSchema = z.object({
     .max(180),
 
   services: shopServicesSchema,
+
+  gstin: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .refine(
+      (value) =>
+        /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(value),
+      { message: "Invalid GSTIN Format" },
+    ),
 });
 
 export const updateShopSchema = z.object({

@@ -81,7 +81,11 @@ export const calculateDistance = (
   
       description: shop.description,
       services: shop.services,
-  
+
+      gstin: shop.gstin,
+      legalBusinessName: shop.legalBusinessName,
+      gst: shop.gst,
+
       latitude,
       longitude,
   

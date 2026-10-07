@@ -17,6 +17,12 @@ import { ApiError } from "../utils/api-error";
 import { normalizeManualShop } from "../helpers/shop-helpers";
 import { geocodePlace } from "./geocode.service";
 
+const isDuplicateKeyError = (error: unknown) =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as { code: number }).code === 11000;
+
 export const createShop = async ({
   ownerId,
   name,
@@ -27,39 +33,55 @@ export const createShop = async ({
   latitude,
   longitude,
   services,
+  gst,
 }: CreateShopInput) => {
-  const shop = await Shop.create({
-    owner: ownerId,
+  try {
+    const shop = await Shop.create({
+      owner: ownerId,
 
-    name,
-    description,
-    phone,
-    email,
-    address,
+      name,
+      description,
+      phone,
+      email,
+      address,
 
-    location: {
-      type: "Point",
-      coordinates: [longitude, latitude],
-    },
+      location: {
+        type: "Point",
+        coordinates: [longitude, latitude],
+      },
 
-    services,
+      services,
 
-    status: 0,
-  });
+      gstin: gst.gstin,
+      legalBusinessName: gst.legalBusinessName,
+      gst,
 
-  return {
-    id: shop._id.toString(),
-    ownerId: ownerId.toString(),
-    name: shop.name,
-    description: shop.description,
-    phone: shop.phone,
-    email: shop.email,
-    address: shop.address,
-    location: shop.location,
-    services: shop.services,
-    status: shop.status,
-    views: shop.views,
-  };
+      status: SHOP_STATUS.APPROVED,
+    });
+
+    return {
+      id: shop._id.toString(),
+      ownerId: ownerId.toString(),
+      name: shop.name,
+      description: shop.description,
+      phone: shop.phone,
+      email: shop.email,
+      address: shop.address,
+      location: shop.location,
+      services: shop.services,
+      status: shop.status,
+      views: shop.views,
+      gstin: shop.gstin,
+      legalBusinessName: shop.legalBusinessName,
+      gst: shop.gst,
+    };
+  } catch (error: unknown) {
+    if (isDuplicateKeyError(error)) {
+      throw new ApiError(409, "A shop with this GSTIN already exists");
+    }
+
+    throw error;
+  }
 };
 
 export const getMyShops = async ({
