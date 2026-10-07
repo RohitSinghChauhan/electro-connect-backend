@@ -20,6 +20,12 @@ interface GstinApiPayload {
   block_status?: string | null;
 }
 
+interface GstinApiResponse {
+  success?: boolean;
+  gstin?: string;
+  data?: GstinApiPayload | null;
+}
+
 const invalidGstin = () => new ApiError(400, "GSTIN is invalid or inactive");
 
 export const verifyGstin = async (gstin: string): Promise<ShopGstDetails> => {
@@ -46,28 +52,29 @@ export const verifyGstin = async (gstin: string): Promise<ShopGstDetails> => {
     throw invalidGstin();
   }
 
-  const payload = (await response.json()) as GstinApiPayload;
+  const body = (await response.json()) as GstinApiResponse;
+  const details = body.data;
 
-  if (payload.status !== "Active" || !payload.legal_name) {
+  if (!details || details.status !== "Active" || !details.legal_name) {
     throw invalidGstin();
   }
 
   return {
-    gstin: payload.gstin ?? gstin,
-    legalBusinessName: payload.legal_name,
-    tradeName: payload.trade_name ?? null,
-    status: payload.status,
-    taxpayerType: payload.taxpayer_type ?? null,
-    businessConstitution: payload.business_constitution ?? null,
-    registrationDate: payload.registration_date ?? null,
-    cancellationDate: payload.cancellation_date ?? null,
-    stateCode: payload.state_code ?? null,
-    stateJurisdiction: payload.state_jurisdiction ?? null,
-    address: payload.address ?? null,
-    pincode: payload.pincode ?? null,
-    natureOfBusiness: Array.isArray(payload.nature_of_business)
-      ? payload.nature_of_business
+    gstin: details.gstin ?? body.gstin ?? gstin,
+    legalBusinessName: details.legal_name,
+    tradeName: details.trade_name ?? null,
+    status: details.status,
+    taxpayerType: details.taxpayer_type ?? null,
+    businessConstitution: details.business_constitution ?? null,
+    registrationDate: details.registration_date ?? null,
+    cancellationDate: details.cancellation_date ?? null,
+    stateCode: details.state_code ?? null,
+    stateJurisdiction: details.state_jurisdiction ?? null,
+    address: details.address ?? null,
+    pincode: details.pincode ?? null,
+    natureOfBusiness: Array.isArray(details.nature_of_business)
+      ? details.nature_of_business
       : [],
-    blockStatus: payload.block_status ?? null,
+    blockStatus: details.block_status ?? null,
   };
 };
