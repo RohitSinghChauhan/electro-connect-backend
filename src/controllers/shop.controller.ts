@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 
+import { verifyGstin } from "../services/gstin.service";
 import { searchNearbyShops } from "../services/googlePlaces.service";
 import {
   createShop,
@@ -32,7 +33,10 @@ export const createShopController = asyncHandler(
       latitude,
       longitude,
       services,
+      gstin,
     } = createShopSchema.parse(req.body);
+
+    const gst = await verifyGstin(gstin);
 
     const result = await createShop({
       ownerId: req.user!.userId,
@@ -44,6 +48,7 @@ export const createShopController = asyncHandler(
       latitude,
       longitude,
       services,
+      gst,
     });
 
     res

@@ -3,6 +3,23 @@ import { Document, Types } from "mongoose";
 // Nearby Combined Shop Types
 export type ShopSource = "google" | "manual";
 
+export interface ShopGstDetails {
+  gstin: string;
+  legalBusinessName: string;
+  tradeName: string | null;
+  status: string;
+  taxpayerType: string | null;
+  businessConstitution: string | null;
+  registrationDate: string | null;
+  cancellationDate: string | null;
+  stateCode: string | null;
+  stateJurisdiction: string | null;
+  address: string | null;
+  pincode: string | null;
+  natureOfBusiness: string[];
+  blockStatus: string | null;
+}
+
 export interface NearbyShop {
   id: string;
   source: ShopSource;
@@ -23,6 +40,10 @@ export interface NearbyShop {
   services?: string[];
   description?: string;
   category?: string;
+
+  gstin?: string;
+  legalBusinessName?: string;
+  gst?: ShopGstDetails;
 
   distance: number;
 }
@@ -52,6 +73,10 @@ export interface ShopData {
 
   status: ShopStatus;
   views?: number;
+
+  gstin?: string;
+  legalBusinessName?: string;
+  gst?: ShopGstDetails;
 }
 
 export interface IShop extends Document {
@@ -68,6 +93,9 @@ export interface IShop extends Document {
   services: string[];
   status: ShopStatus;
   views: number;
+  gstin: string;
+  legalBusinessName?: string;
+  gst?: ShopGstDetails;
 }
 
 export interface CreateShopInput {
@@ -80,6 +108,7 @@ export interface CreateShopInput {
   latitude: number;
   longitude: number;
   services: string[];
+  gst: ShopGstDetails;
 }
 
 export interface UpdateShopInput {
@@ -101,6 +130,9 @@ export interface ManualShopRecord {
   email?: string;
   description?: string;
   services?: string[];
+  gstin?: string;
+  legalBusinessName?: string;
+  gst?: ShopGstDetails;
   location: {
     coordinates: number[];
   };
